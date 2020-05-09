@@ -1,4 +1,13 @@
 <?php
+require_once('ldapUserOper.php');
+try {
+    $ldap_Op=new ldapUserOper('127.0.0.1','test@test.com');
+    $ldap_Op->addUserEntry('666666','aaaaaa');
+
+} catch (\Throwable $th) {
+    //throw $th;
+}
+error_log(var_dump($_GET), 3, "/tmp/testphp.log");
 
 ?>
 
@@ -39,7 +48,7 @@
                                         </div>
                                     </div>
                                     <div class="card-body">
-                                        <div class="card card-block sameheight-item" style="border:1px solid rgb(73, 177, 99); border-radius:20px">
+                                        <div class="card card-block sameheight-item rounded" style="border:1px solid rgb(73, 177, 99); ">
                                             <div class="card-header bordered">
                                                 <div class="header-block">
                                                     <h4 class="title"> account1 </h3>
@@ -51,14 +60,14 @@
                                                 </div>
                                             </div>
                                             <div class=" card-body">
-                                                <form>
+                                                <form action="test.php?op=" method="get">
                                                     <div class="form-group row">
                                                         <label class="col-md-3 form-control-label" for="password">Password:</label>
                                                         <div class="col-md-6">
-                                                            <input type="password" class="form-control" id="password" placeholder="******">
+                                                            <input type="password" class="form-control" id="password" name="password" placeholder="******">
                                                         </div>
                                                         <div class="col-md-3">
-                                                            <button type="submit" class="btn btn-primary " >Modify</button>
+                                                            <button type="submit" class="btn btn-primary rounded" name="pwdmodify" >Modify</button>
                                                         </div>
                                                     </div>
                                                     <div class="form-group row">
@@ -75,10 +84,10 @@
                                                     <div class="form-group row">
                                                         <label class="col-md-3 form-control-label" for="host2">Host:</label>
                                                         <div class="col-md-6">
-                                                            <input type="text" class="form-control" id="host2" placeholder="xxx.xxx.xxx.xxx">
+                                                            <input type="text" class="form-control" id="host2" name="host" placeholder="xxx.xxx.xxx.xxx">
                                                         </div>
                                                         <div class="col-md-3">
-                                                            <button type="submit" class="btn btn-primary " >Add</button>
+                                                            <button type="submit" class="btn btn-primary rounded" name="addhost" >Add</button>
                                                         </div>
                                                     </div>
                                                 </form>
@@ -146,7 +155,7 @@
                                 </button>
                             </div>
                             <div class="modal-body">
-                                <form role="form">
+                                <form role="form" >
                                     <div class="form-group">
                                         <label for="name">Account Name</label>
                                         <input type="text" class="form-control" id="name" placeholder="Name">
@@ -180,7 +189,7 @@
                                 </button>
                             </div>
                             <div class="modal-body">
-                                <p>Are you sure want to do this?</p>
+                                <p>Are you sure want to delete this item?</p>
                             </div>
                             <div class="modal-footer">
                                 <a class="btn btn-primary">Yes</a>

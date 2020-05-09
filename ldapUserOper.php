@@ -44,7 +44,7 @@ class ldapUserOper
         {
             $this->throwErr("set LDAP_OPT_REFERRALS failed ");
         }
-        if (!ldap_bind ($this->connectId,$this->bind_dn,$this->$bind_pass))
+        if (!ldap_bind ($this->connectId,$this->bind_dn,$this->bind_pass))
         {
             $this->throwErr("bind failed,err ");
         }
@@ -80,10 +80,6 @@ class ldapUserOper
 
     public function isUserEntryExist()
     {
-        if(is_resource($this->userReadId))
-        {
-            return true;
-        }
         $dn=$this->getUserEntryDn();
         if (is_null($dn))
         {
@@ -105,7 +101,7 @@ class ldapUserOper
         }
         $info = $this->assembleUserEntryInfo($employeeId,$name);
         $dn=$this->getUserEntryDn();
-        return addEntry($dn,$info);
+        return $this->addEntry($dn,$info);
     }
     public function getAllAccountEntry()
     {

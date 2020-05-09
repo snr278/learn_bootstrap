@@ -4,10 +4,71 @@ try {
     $ldap_Op=new ldapUserOper('127.0.0.1','test@test.com');
     $ldap_Op->addUserEntry('666666','aaaaaa');
 
+
+
 } catch (\Throwable $th) {
     //throw $th;
 }
-error_log(var_dump($_GET), 3, "/tmp/testphp.log");
+var_dump($_GET);
+
+function showCard()
+{
+
+//accountName, deleAccountHref,accountName,formAction,
+$page_format=<<<PAGEFORMAT
+<div class="card card-block sameheight-item rounded" style="border:1px solid rgb(73, 177, 99); ">
+    <div class="card-header bordered">
+        <div class="header-block">
+            <h4 class="title">%s</h3>
+        </div>
+        <div class="header-block pull-right">
+            <a class="remove" data-toggle="modal" data-target="#confirm-modal" data-href="%s">
+                <i class="fa fa-trash-o text-danger jqvmap-region"></i>
+            </a>
+        </div>
+    </div>
+    <div class=" card-body">
+        <form action="%s" method="get">
+            <input type="hidden" name="accName" value="%s">
+            <div class="form-group row">
+                <label class="col-md-3 form-control-label" for="password">Password:</label>
+                <div class="col-md-6">
+                    <input type="password" class="form-control" id="password" name="password" placeholder="******">
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary rounded" name="pwdmodify" >Modify</button>
+                </div>
+            </div>
+            <div class="form-group row">
+                <label class="col-md-3 form-control-label" for="host1">Host:</label>
+                <div class="col-md-6">
+                    <input type="text" class="form-control" readonly id="host1" value="1.1.1.1">
+                </div>
+                <div class="col-md-3">
+                    <a class="remove" data-toggle="modal" data-target="#confirm-modal" data-href="./index.html">
+                        <i class="fa fa-trash-o text-danger jqvmap-region"></i>
+                    </a>
+                </div>
+            </div>
+            <div class="form-group row">
+                <label class="col-md-3 form-control-label" for="host2">Host:</label>
+                <div class="col-md-6">
+                    <input type="text" class="form-control" id="host2" name="host" placeholder="xxx.xxx.xxx.xxx">
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary rounded" name="addhost" >Add</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+PAGEFORMAT;
+}
+function showCards($ldap_Op)
+{
+
+}
 
 ?>
 
@@ -41,7 +102,7 @@ error_log(var_dump($_GET), 3, "/tmp/testphp.log");
                                 <div class="card " >
                                     <div class="card-header bordered">
                                         <div class="header-block">
-                                            <h3 class="title"> Total Accounts: 2 </h3>
+                                            <h3 class="title"> Total Accounts: <?php echo $ldap_Op->getAccountCnt()?> </h3>
                                         </div>
                                         <div class="header-block pull-right">
                                             <a href="" class="btn btn-primary btn-sm rounded pull-right" data-toggle="modal" data-target="#AddAccountModal"> Add new </a>
@@ -54,13 +115,13 @@ error_log(var_dump($_GET), 3, "/tmp/testphp.log");
                                                     <h4 class="title"> account1 </h3>
                                                 </div>
                                                 <div class="header-block pull-right">
-                                                    <a class="remove" data-toggle="modal" data-target="#confirm-modal" data-href="./index.html">
+                                                    <a class="remove" data-toggle="modal" data-target="#confirm-modal" data-href="test.php?delOp=1&obj=account&item=1">
                                                         <i class="fa fa-trash-o text-danger jqvmap-region"></i>
                                                     </a>
                                                 </div>
                                             </div>
                                             <div class=" card-body">
-                                                <form action="test.php?op=" method="get">
+                                                <form action="test.php" method="get">
                                                     <div class="form-group row">
                                                         <label class="col-md-3 form-control-label" for="password">Password:</label>
                                                         <div class="col-md-6">
@@ -155,21 +216,21 @@ error_log(var_dump($_GET), 3, "/tmp/testphp.log");
                                 </button>
                             </div>
                             <div class="modal-body">
-                                <form role="form" >
+                                <form role="form" action="test.php" method="get" >
                                     <div class="form-group">
                                         <label for="name">Account Name</label>
-                                        <input type="text" class="form-control" id="name" placeholder="Name">
+                                        <input type="text" class="form-control" id="name" placeholder="Name" required="required">
                                     </div>
                                     <div class="form-group">
                                         <label for="passwd">Password</label>
-                                        <input type="password" class="form-control" id="passwd" placeholder="Password">
+                                        <input type="password" class="form-control" id="passwd" placeholder="Password" required="required">
                                     </div>
                                     <div class="form-group">
                                         <label for="host">Host</label>
-                                        <input type="text" class="form-control" id="host" placeholder="xx.xx.xx.xx">
+                                        <input type="text" class="form-control" id="host" placeholder="xx.xx.xx.xx" required="required">
                                     </div>
                                     <div class="modal-footer">
-                                        <button type="submit" class="btn btn-primary" data-dismiss="modal">Submit</button>
+                                        <button type="submit" class="btn btn-primary" >Submit</button>
                                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
                                     </div>
                                 </form>

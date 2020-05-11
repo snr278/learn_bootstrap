@@ -4,59 +4,141 @@ try {
     $ldap_Op=new ldapUserOper('127.0.0.1','test@test.com');
     $ldap_Op->addUserEntry('666666','aaaaaa');
 
+    //procOpt($ldap_Op);
 
+    $allAccount=$ldap_Op->getAllAccountEntry();
+    var_dump($allAccount);
 
 } catch (\Throwable $th) {
     //throw $th;
 }
-var_dump($_GET);
+//var_dump($_GET);
 
-function showCard()
+
+function procOpt($ldap_Op)
 {
+    if(array_key_exists("delAcc",$_GET))
+    {
+        if(empty($_GET["accName"]))
+        {
+            return;
+        }
+        $ldap_Op->delAcc($_GET["accName"]);
+    }
+    else if (array_key_exists("addAcc",$_GET))
+    {
+        if((empty($_GET["accName"]))||(empty($_GET["accPwd"]))||
+        (empty($_GET["host"])))
+        {
+            return ;
+        }
+        $ldap_Op->addAcc($_GET["accName"],$_GET["accPwd"],$_GET["host"]);
+    }
+    else if (array_key_exists("addHost",$_GET))
+    {
+        if((empty($_GET["accName"]))||(empty($_GET["host"])))
+        {
+            return ;
+        }
+        $ldap_Op->addHost($_GET["accName"],$_GET["host"]);
+    }
+    else if (array_key_exists("delHost",$_GET))
+    {
+        if((empty($_GET["accName"]))||(empty($_GET["host"])))
+        {
+            return ;
+        }
+        $ldap_Op->delHost($_GET["accName"],$_GET["host"]);
+    }
+    else if (array_key_exists("modPwd",$_GET))
+    {
+        if((empty($_GET["accName"]))||(empty($_GET["accPwd"])))
+        {
+            return;
+        }
+        $ldap_Op->modPwd($_GET["accName"],$_GET["accPwd"]);
+    }
+}
 
-//accountName, deleAccountHref,accountName,formAction,
+
+function showHost($href,$index,$accName,$host)
+{
+$page=<<<PAGEFORMAT
+<div class="form-group row">
+    <label class="col-md-3 form-control-label" for="{$accName}host{$index}">Host:</label>
+    <div class="col-md-6">
+        <input type="text" class="form-control" readonly id="{$accName}host{$index}" value="{$host}">
+    </div>
+    <div class="col-md-3">
+        <a class="remove" data-toggle="modal" data-target="#confirm-modal" data-href="{$href}">
+            <i class="fa fa-trash-o text-danger jqvmap-region"></i>
+        </a>
+    </div>
+</div>
+PAGEFORMAT;
+    return $page;
+}
+
+function showHosts($href,$accName,$hosts)
+{
+    
 $page_format=<<<PAGEFORMAT
+<div class="form-group row">
+    <label class="col-md-3 form-control-label" for="host%s">Host:</label>
+    <div class="col-md-6">
+        <input type="text" class="form-control" readonly id="host%s" value="%s">
+    </div>
+    <div class="col-md-3">
+        <a class="remove" data-toggle="modal" data-target="#confirm-modal" data-href="./index.html">
+            <i class="fa fa-trash-o text-danger jqvmap-region"></i>
+        </a>
+    </div>
+</div>
+
+PAGEFORMAT;
+    return "";
+
+}
+
+function showCard($ldap_Op,$accName)
+{
+    $pageHref="test.php";
+    $deleAccountHref=$pageHref."?delAcc=1&accName=".$accName;
+    $hostsPage=showHosts($hosts);
+//accountName, deleAccountHref,formAction,accountName,
+$page=<<<PAGEFORMAT
 <div class="card card-block sameheight-item rounded" style="border:1px solid rgb(73, 177, 99); ">
     <div class="card-header bordered">
         <div class="header-block">
-            <h4 class="title">%s</h3>
+            <h4 class="title">{$accName}</h3>
         </div>
         <div class="header-block pull-right">
-            <a class="remove" data-toggle="modal" data-target="#confirm-modal" data-href="%s">
+            <a class="remove" data-toggle="modal" data-target="#confirm-modal" data-href="{$deleAccountHref}">
                 <i class="fa fa-trash-o text-danger jqvmap-region"></i>
             </a>
         </div>
     </div>
     <div class=" card-body">
-        <form action="%s" method="get">
-            <input type="hidden" name="accName" value="%s">
+        <form action="{$pageHref}" method="get">
+            <input type="hidden" name="accName" value="{$accName}">
             <div class="form-group row">
-                <label class="col-md-3 form-control-label" for="password">Password:</label>
+                <label class="col-md-3 form-control-label" for="{$accName}password">Password:</label>
                 <div class="col-md-6">
-                    <input type="password" class="form-control" id="password" name="password" placeholder="******">
+                    <input type="password" class="form-control" id="{$accName}password" name="password" placeholder="******">
                 </div>
                 <div class="col-md-3">
-                    <button type="submit" class="btn btn-primary rounded" name="pwdmodify" >Modify</button>
+                    <button type="submit" class="btn btn-primary rounded" name="modPwd" >Modify</button>
                 </div>
             </div>
+            {$hostsPage}
+            
             <div class="form-group row">
-                <label class="col-md-3 form-control-label" for="host1">Host:</label>
+                <label class="col-md-3 form-control-label" for="{$accName}host">Host:</label>
                 <div class="col-md-6">
-                    <input type="text" class="form-control" readonly id="host1" value="1.1.1.1">
+                    <input type="text" class="form-control" id="{$accName}host" name="host" placeholder="xxx.xxx.xxx.xxx">
                 </div>
                 <div class="col-md-3">
-                    <a class="remove" data-toggle="modal" data-target="#confirm-modal" data-href="./index.html">
-                        <i class="fa fa-trash-o text-danger jqvmap-region"></i>
-                    </a>
-                </div>
-            </div>
-            <div class="form-group row">
-                <label class="col-md-3 form-control-label" for="host2">Host:</label>
-                <div class="col-md-6">
-                    <input type="text" class="form-control" id="host2" name="host" placeholder="xxx.xxx.xxx.xxx">
-                </div>
-                <div class="col-md-3">
-                    <button type="submit" class="btn btn-primary rounded" name="addhost" >Add</button>
+                    <button type="submit" class="btn btn-primary rounded" name="addHost" >Add</button>
                 </div>
             </div>
         </form>
@@ -64,10 +146,11 @@ $page_format=<<<PAGEFORMAT
 </div>
 
 PAGEFORMAT;
+    return $page;
 }
 function showCards($ldap_Op)
 {
-
+    return showCard($ldap_Op,"test");
 }
 
 ?>
@@ -109,96 +192,7 @@ function showCards($ldap_Op)
                                         </div>
                                     </div>
                                     <div class="card-body">
-                                        <div class="card card-block sameheight-item rounded" style="border:1px solid rgb(73, 177, 99); ">
-                                            <div class="card-header bordered">
-                                                <div class="header-block">
-                                                    <h4 class="title"> account1 </h3>
-                                                </div>
-                                                <div class="header-block pull-right">
-                                                    <a class="remove" data-toggle="modal" data-target="#confirm-modal" data-href="test.php?delOp=1&obj=account&item=1">
-                                                        <i class="fa fa-trash-o text-danger jqvmap-region"></i>
-                                                    </a>
-                                                </div>
-                                            </div>
-                                            <div class=" card-body">
-                                                <form action="test.php" method="get">
-                                                    <div class="form-group row">
-                                                        <label class="col-md-3 form-control-label" for="password">Password:</label>
-                                                        <div class="col-md-6">
-                                                            <input type="password" class="form-control" id="password" name="password" placeholder="******">
-                                                        </div>
-                                                        <div class="col-md-3">
-                                                            <button type="submit" class="btn btn-primary rounded" name="pwdmodify" >Modify</button>
-                                                        </div>
-                                                    </div>
-                                                    <div class="form-group row">
-                                                        <label class="col-md-3 form-control-label" for="host1">Host:</label>
-                                                        <div class="col-md-6">
-                                                            <input type="text" class="form-control" readonly id="host1" value="1.1.1.1">
-                                                        </div>
-                                                        <div class="col-md-3">
-                                                            <a class="remove" data-toggle="modal" data-target="#confirm-modal" data-href="./index.html">
-                                                                <i class="fa fa-trash-o text-danger jqvmap-region"></i>
-                                                            </a>
-                                                        </div>
-                                                    </div>
-                                                    <div class="form-group row">
-                                                        <label class="col-md-3 form-control-label" for="host2">Host:</label>
-                                                        <div class="col-md-6">
-                                                            <input type="text" class="form-control" id="host2" name="host" placeholder="xxx.xxx.xxx.xxx">
-                                                        </div>
-                                                        <div class="col-md-3">
-                                                            <button type="submit" class="btn btn-primary rounded" name="addhost" >Add</button>
-                                                        </div>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
-                                        <div class="card card-block sameheight-item" style="border:1px solid rgb(73, 177, 99); border-radius:20px">
-                                            <div class="card-header bordered">
-                                                <div class="header-block">
-                                                    <h4 class="title"> account1 </h3>
-                                                </div>
-                                                <div class="header-block pull-right">
-                                                    <a class="remove" data-toggle="modal" data-target="#confirm-modal" data-href="./index.html">
-                                                        <i class="fa fa-trash-o text-danger jqvmap-region"></i>
-                                                    </a>
-                                                </div>
-                                            </div>
-                                            <div class=" card-body">
-                                                <form>
-                                                    <div class="form-group row">
-                                                        <label class="col-md-3 form-control-label" for="password">Password:</label>
-                                                        <div class="col-md-6">
-                                                            <input type="password" class="form-control" id="password" placeholder="******">
-                                                        </div>
-                                                        <div class="col-md-3">
-                                                            <button type="submit" class="btn btn-primary " >Modify</button>
-                                                        </div>
-                                                    </div>
-                                                    <div class="form-group row">
-                                                        <label class="col-md-3 form-control-label" for="host1">Host:</label>
-                                                        <div class="col-md-6">
-                                                            <input type="text" class="form-control" readonly id="host1" value="1.1.1.1">
-                                                        </div>
-                                                        <div class="col-md-3">
-                                                            <a class="remove" data-toggle="modal" data-target="#confirm-modal" data-href="./index.html">
-                                                                <i class="fa fa-trash-o text-danger jqvmap-region"></i>
-                                                            </a>
-                                                        </div>
-                                                    </div>
-                                                    <div class="form-group row">
-                                                        <label class="col-md-3 form-control-label" for="host2">Host:</label>
-                                                        <div class="col-md-6">
-                                                            <input type="text" class="form-control" id="host2" placeholder="xxx.xxx.xxx.xxx">
-                                                        </div>
-                                                        <div class="col-md-3">
-                                                            <button type="submit" class="btn btn-primary " >Add</button>
-                                                        </div>
-                                                    </div>
-                                                </form>
-                                            </div>
-                                        </div>
+                                        <?php echo showCards()?>
                                     </div>
                                 </div>
                             </div>
@@ -219,18 +213,18 @@ function showCards($ldap_Op)
                                 <form role="form" action="test.php" method="get" >
                                     <div class="form-group">
                                         <label for="name">Account Name</label>
-                                        <input type="text" class="form-control" id="name" placeholder="Name" required="required">
+                                        <input type="text" class="form-control" id="name" name="accName" placeholder="Name" required="required">
                                     </div>
                                     <div class="form-group">
-                                        <label for="passwd">Password</label>
-                                        <input type="password" class="form-control" id="passwd" placeholder="Password" required="required">
+                                        <label for="accPwd">Password</label>
+                                        <input type="password" class="form-control" id="accPwd" name="accPwd" placeholder="Password" required="required">
                                     </div>
                                     <div class="form-group">
                                         <label for="host">Host</label>
-                                        <input type="text" class="form-control" id="host" placeholder="xx.xx.xx.xx" required="required">
+                                        <input type="text" class="form-control" id="host" name="host" placeholder="xx.xx.xx.xx" required="required">
                                     </div>
                                     <div class="modal-footer">
-                                        <button type="submit" class="btn btn-primary" >Submit</button>
+                                        <button type="submit" class="btn btn-primary" name="addAcc">Submit</button>
                                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
                                     </div>
                                 </form>

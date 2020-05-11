@@ -12,6 +12,7 @@ class ldapUserOper
     private $userEntryDn;
     private $accountEntryIdName;
     private $accountEntryIdValue;
+    private $accCnt;
     private $filter;
     private $search_filds;
     private $userReadId;
@@ -27,6 +28,7 @@ class ldapUserOper
         $this->userEntryIdName="mail";
         $this->accountEntryIdName="uid";
         $this->filter="objectClass=*";
+        $this->accCnt=0;
         $this->search_filds=array('uid','host', 'userPassword');
         $this->userReadId=false;
         $this->userEntryIdValue=$UserIdValue;
@@ -115,9 +117,10 @@ class ldapUserOper
         {
             $this->throwErr("get all account entry ldap_get_entries failed!");
         }
+        $this->accCnt=$retData["count"];
         return $retData;
     }
-    public function assembleUserEntryInfo($employeeId,$name)
+    private function assembleUserEntryInfo($employeeId,$name)
     {
         $Info["sn"]=$employeeId;
         $Info["cn"]=$name;
@@ -127,21 +130,23 @@ class ldapUserOper
     }
     public function assembleAccountEntryInfo($account,$passwd,$host)
     {
-        if (!is_array($host))
-        {
-            throw new Exception("host should be array ");
-        }
         $Info[$this->accountEntryIdName]=$account;
         $Info["objectClass"][0]="account";
         $Info["objectClass"][1]="simpleSecurityObject";
         $Info["userPassword"]=sprintf('{SHA}%s',base64_encode(pack('H*',hash('sha1',$passwd))));
-        $cnt=0;
-        foreach($host as $addr)
-        {
-            $Info["host"][$cnt]=$addr;
-            $cnt=$cnt+1;
-        }
+        $Info["host"][0]=$host;
+
         return $Info;
+    }
+    public function addAcc($account,$passwd,$host)
+    {
+        $entryInfo=$this->assembleAccountEntryInfo($account,$passwd,$host);
+        $dn=$this->getAccountEntryDn($account);
+        return $this->addEntry($dn,$entryInfo);
+    }
+    public function getAccountCnt()
+    {
+        return $this->accCnt;
     }
 }
 

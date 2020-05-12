@@ -228,7 +228,7 @@ function showCards($allAccount)
                                         <input type="text" class="form-control" id="host" name="host" placeholder="xx.xx.xx.xx" required="required">
                                     </div>
                                     <div class="modal-footer">
-                                        <button type="submit" class="btn btn-primary" name="addAcc" onClick='HashPwd("accPwd")'>Submit</button>
+                                        <button type="submit" class="btn btn-primary" name="addAcc" onClick='return checkAddInfo("accPwd","host")'>Submit</button>
                                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
                                     </div>
                                 </form>
@@ -319,6 +319,15 @@ function showCards($allAccount)
                 $(id_str).val("");
                 alert("You have entered an invalid IP address!")
                 return false;
+            }
+            function checkAddInfo(pwdId,hostId)
+            {
+                if(!isValidIp(hostId))
+                {
+                    return false;
+                }
+                HashPwd(pwdId);
+                return true;
             }
         </script>
         <script src="js/vendor.js"></script>

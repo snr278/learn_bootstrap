@@ -4,11 +4,14 @@ try {
     $ldap_Op=new ldapUserOper('127.0.0.1','test@test.com');
     $ldap_Op->addUserEntry('666666','aaaaaa');
 
-    //procOpt($ldap_Op);
+    procOpt($ldap_Op);
+    //$result=$ldap_Op->modPwd("bbbadf","abcde");
+
+    //var_dump($result);
 
     $allAccount=$ldap_Op->getAllAccountEntry();
-    var_dump($allAccount);
-
+    
+    $ldap_Op->closeCon();
 } catch (\Throwable $th) {
     //throw $th;
 }
@@ -60,51 +63,42 @@ function procOpt($ldap_Op)
     }
 }
 
-
-function showHost($href,$index,$accName,$host)
-{
-$page=<<<PAGEFORMAT
-<div class="form-group row">
-    <label class="col-md-3 form-control-label" for="{$accName}host{$index}">Host:</label>
-    <div class="col-md-6">
-        <input type="text" class="form-control" readonly id="{$accName}host{$index}" value="{$host}">
-    </div>
-    <div class="col-md-3">
-        <a class="remove" data-toggle="modal" data-target="#confirm-modal" data-href="{$href}">
-            <i class="fa fa-trash-o text-danger jqvmap-region"></i>
-        </a>
-    </div>
-</div>
-PAGEFORMAT;
-    return $page;
-}
-
 function showHosts($href,$accName,$hosts)
 {
     
 $page_format=<<<PAGEFORMAT
 <div class="form-group row">
-    <label class="col-md-3 form-control-label" for="host%s">Host:</label>
+    <label class="col-md-3 form-control-label" for="%shost%d">Host:</label>
     <div class="col-md-6">
-        <input type="text" class="form-control" readonly id="host%s" value="%s">
+        <input type="text" class="form-control" readonly id="%shost%d" value="%s">
     </div>
     <div class="col-md-3">
-        <a class="remove" data-toggle="modal" data-target="#confirm-modal" data-href="./index.html">
+        <a class="remove" data-toggle="modal" data-target="#confirm-modal" data-href="%s">
             <i class="fa fa-trash-o text-danger jqvmap-region"></i>
         </a>
     </div>
 </div>
 
 PAGEFORMAT;
-    return "";
+    $page="";
+    for($i=0;$i<$hosts["count"];$i++)
+    {
+        $tmp_href=$href."&host=".$hosts[$i];
+        $page.=sprintf($page_format,$accName,$i,$accName,$i,$hosts[$i],$tmp_href);
+    }
+    return $page;
 
 }
 
-function showCard($ldap_Op,$accName)
+function showCard($accInfo)
 {
+    $accName=$accInfo["uid"][0];
     $pageHref="test.php";
     $deleAccountHref=$pageHref."?delAcc=1&accName=".$accName;
-    $hostsPage=showHosts($hosts);
+    $delHostHref=$pageHref."?delHost=1&accName=".$accName;
+
+    
+    $hostsPage=showHosts($delHostHref,$accName,$accInfo["host"]);
 //accountName, deleAccountHref,formAction,accountName,
 $page=<<<PAGEFORMAT
 <div class="card card-block sameheight-item rounded" style="border:1px solid rgb(73, 177, 99); ">
@@ -124,10 +118,10 @@ $page=<<<PAGEFORMAT
             <div class="form-group row">
                 <label class="col-md-3 form-control-label" for="{$accName}password">Password:</label>
                 <div class="col-md-6">
-                    <input type="password" class="form-control" id="{$accName}password" name="password" placeholder="******">
+                    <input type="password" class="form-control" id="{$accName}password" name="accPwd" placeholder="******" autocomplete="off">
                 </div>
                 <div class="col-md-3">
-                    <button type="submit" class="btn btn-primary rounded" name="modPwd" >Modify</button>
+                    <button type="submit" class="btn btn-primary rounded" name="modPwd" onClick='HashPwd("{$accName}password")' >Modify</button>
                 </div>
             </div>
             {$hostsPage}
@@ -138,7 +132,7 @@ $page=<<<PAGEFORMAT
                     <input type="text" class="form-control" id="{$accName}host" name="host" placeholder="xxx.xxx.xxx.xxx">
                 </div>
                 <div class="col-md-3">
-                    <button type="submit" class="btn btn-primary rounded" name="addHost" >Add</button>
+                    <button type="submit" class="btn btn-primary rounded" name="addHost" onClick='return isValidIp("{$accName}host")'>Add</button>
                 </div>
             </div>
         </form>
@@ -146,11 +140,20 @@ $page=<<<PAGEFORMAT
 </div>
 
 PAGEFORMAT;
+    
     return $page;
 }
-function showCards($ldap_Op)
+function showCards($allAccount)
 {
-    return showCard($ldap_Op,"test");
+    $page="";
+    
+    for($i=0;$i<$allAccount["count"];$i++)
+    {
+        $page.=showCard($allAccount[$i]);
+        
+    }
+    
+    return $page;
 }
 
 ?>
@@ -192,7 +195,8 @@ function showCards($ldap_Op)
                                         </div>
                                     </div>
                                     <div class="card-body">
-                                        <?php echo showCards()?>
+                                        
+                                        <?php echo showCards($allAccount);?>
                                     </div>
                                 </div>
                             </div>
@@ -217,14 +221,14 @@ function showCards($ldap_Op)
                                     </div>
                                     <div class="form-group">
                                         <label for="accPwd">Password</label>
-                                        <input type="password" class="form-control" id="accPwd" name="accPwd" placeholder="Password" required="required">
+                                        <input type="password" class="form-control" id="accPwd" name="accPwd" placeholder="Password" required="required" autocomplete="off">
                                     </div>
                                     <div class="form-group">
                                         <label for="host">Host</label>
                                         <input type="text" class="form-control" id="host" name="host" placeholder="xx.xx.xx.xx" required="required">
                                     </div>
                                     <div class="modal-footer">
-                                        <button type="submit" class="btn btn-primary" name="addAcc">Submit</button>
+                                        <button type="submit" class="btn btn-primary" name="addAcc" onClick='HashPwd("accPwd")'>Submit</button>
                                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
                                     </div>
                                 </form>
@@ -266,6 +270,7 @@ function showCards($ldap_Op)
         <script src="js/jquery-slim.min.js"></script>
         <script src="js/popper.min.js"></script>
         <script src="js/bootstrap.min.js"></script>
+        <script src="js/hashes.min.js"></script>
         <script>
             (function(i, s, o, g, r, a, m)
             {
@@ -294,6 +299,27 @@ function showCards($ldap_Op)
                 $(this).find('.btn-primary').attr('href' ,recipient)
 
                 })
+            function HashPwd(pwdId)
+            {
+                var id_str="#"+pwdId;
+                var text=$(id_str).val();
+                var SHA512 = new Hashes.SHA512;
+                var pwd=SHA512.b64(text);
+                $(id_str).val("{SHA512}"+pwd);
+            }
+
+            function isValidIp(hostId)
+            {
+                var id_str="#"+hostId;
+                var text=$(id_str).val();
+                if (/^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(text))
+                {
+                    return true;
+                }
+                $(id_str).val("");
+                alert("You have entered an invalid IP address!")
+                return false;
+            }
         </script>
         <script src="js/vendor.js"></script>
         <script src="js/app.js"></script>

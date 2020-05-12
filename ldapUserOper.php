@@ -80,19 +80,19 @@ class ldapUserOper
         return $this->accountEntryIdName."=".$account.",".$pre_dn;
     }
 
-    public function isUserEntryExist()
+    private function isDnExist($dn)
     {
-        $dn=$this->getUserEntryDn();
-        if (is_null($dn))
-        {
-            return false;
-        }
-        $this->userReadId=ldap_read ($this->connectId,$dn,$this->filter);
-        if (!is_resource($this->userReadId))
+        $result=ldap_read ($this->connectId,$dn,$this->filter);
+        if (!is_resource($result))
         {
             return false;
         }
         return true;
+    }
+
+    public function isUserEntryExist()
+    {
+        return $this->isDnExist($this->getUserEntryDn());
     }
 
     public function addUserEntry($employeeId,$name)
@@ -133,20 +133,130 @@ class ldapUserOper
         $Info[$this->accountEntryIdName]=$account;
         $Info["objectClass"][0]="account";
         $Info["objectClass"][1]="simpleSecurityObject";
-        $Info["userPassword"]=sprintf('{SHA}%s',base64_encode(pack('H*',hash('sha1',$passwd))));
+        $Info["userPassword"]=$passwd;
         $Info["host"][0]=$host;
 
         return $Info;
     }
     public function addAcc($account,$passwd,$host)
     {
-        $entryInfo=$this->assembleAccountEntryInfo($account,$passwd,$host);
         $dn=$this->getAccountEntryDn($account);
+        if($this->isDnExist($dn))
+        {
+            return true;
+        }
+        $entryInfo=$this->assembleAccountEntryInfo($account,$passwd,$host);
+        
         return $this->addEntry($dn,$entryInfo);
+    }
+
+    public function modPwd($account,$passwd)
+    {
+        $dn=$this->getAccountEntryDn($account);
+        if(!$this->isDnExist($dn))
+        {
+            return false;
+        }
+        $Info["userPassword"]=$passwd;
+        return ldap_mod_replace ($this->connectId,$dn,$Info);
     }
     public function getAccountCnt()
     {
         return $this->accCnt;
+    }
+    private function ldap_delete_r($dn,$recursive=false)
+    {
+        if($recursive == false)
+        {
+            return(ldap_delete($this->connectId,$dn));
+        }
+        else
+        {
+            //searching for sub entries
+            $sr=ldap_list($this->connectId,$dn,"ObjectClass=*",array(""));
+            if (!is_resource($sr))
+            {
+                return false;
+            }
+            $info = ldap_get_entries($this->connectId, $sr);
+            if(!is_array($info))
+            {
+                return false;
+            }
+            for($i=0;$i<$info['count'];$i++)
+            {
+                //deleting recursively sub entries
+                $result=ldap_delete_r($info[$i]['dn'],$recursive);
+                if(!$result)
+                {
+                    //return result code, if delete fails
+                    return($result);
+                }
+            }
+            return(ldap_delete($this->connectId,$dn));
+        }
+    }
+    public function delAcc($account)
+    {
+        return $this->ldap_delete_r($this->getAccountEntryDn($account),TRUE);
+    }
+    public function addHost($account,$host)
+    {
+        $dn=$this->getAccountEntryDn($account);
+        if(!$this->isDnExist($dn))
+        {
+            return false;
+        }
+        if ($this->isHostExist($account,$host))
+        {
+            return true;
+        }
+        $entry["host"]=$host;
+        return ldap_mod_add ($this->connectId,$dn,$entry);
+    }
+
+    public function delHost($account,$host)
+    {
+        $dn=$this->getAccountEntryDn($account);
+        if(!$this->isDnExist($dn))
+        {
+            return false;
+        }
+        $entry["host"]=$host;
+        return ldap_mod_del ($this->connectId,$dn,$entry);
+    }
+
+    public function getAccInfo($account)
+    {
+        $result=ldap_read ($this->connectId,$this->getAccountEntryDn($account),$this->filter);
+        if (!is_resource($result))
+        {
+            $this->throwErr("getAccInfo get all account entry ldap_read failed!");
+        }
+        $retData=ldap_get_entries ($this->connectId,$result);
+        if (!$retData)
+        {
+            $this->throwErr("getAccInfo get all account entry ldap_get_entries failed!");
+        }
+        return $retData;
+    }
+    public function isHostExist($account,$host)
+    {
+        $accInfo=$this->getAccInfo($account);
+        $hostsData=$accInfo[0]["host"];
+        for($i=0;$i<$hostsData["count"];$i++)
+        {
+            if(!strcmp($host,$hostsData[$i]))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public function closeCon()
+    {
+        ldap_close($this->connectId);
     }
 }
 

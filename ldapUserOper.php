@@ -18,7 +18,7 @@ class ldapUserOper
     private $userReadId;
 
 
-    public function __construct($server_addr,$UserIdValue,$port="389",$base_dn="ou=users,dc=DHBU,dc=NSB",$bind_dn="cn=admin,dc=DHBU,dc=NSB",$bind_pass="dhbuldaps")
+    public function __construct($server_addr,$UserIdValue,$port="389",$base_dn="ou=users,dc=BBDU,dc=com",$bind_dn="cn=admin,dc=BBDU,dc=com",$bind_pass="aaaaaa")
     {
         $this->server_addr=$server_addr;
         $this->port=$port;

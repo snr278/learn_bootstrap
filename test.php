@@ -1,13 +1,22 @@
 <?php
 require_once('ldapUserOper.php');
 try {
-    $ldap_Op=new ldapUserOper('127.0.0.1','test@test.com');
-    $ldap_Op->addUserEntry('666666','aaaaaa');
+    if(isBMuser()&&!isBMNormal())
+    {
+        $email="BM.security@test.com";
+        $number="999999";
+        $name="BM.security";
+    }
+    else
+    {
+        $email=getAuthUserEmail();
+        $number=getAuthUserEmNum();
+        $name=getAuthUserName();
+    }
+    $ldap_Op=new ldapUserOper('127.0.0.1',$email);
+    $ldap_Op->addUserEntry($number,$name);
 
     procOpt($ldap_Op);
-    //$result=$ldap_Op->modPwd("bbbadf","abcde");
-
-    //var_dump($result);
 
     $allAccount=$ldap_Op->getAllAccountEntry();
     
@@ -17,7 +26,18 @@ try {
 }
 //var_dump($_GET);
 
-
+function getAuthUserEmail()
+{
+    return "test@test.com";
+}
+function getAuthUserEmNum()
+{
+    return "666666";
+}
+function getAuthUserName()
+{
+    return "test";
+}
 function procOpt($ldap_Op)
 {
     if(array_key_exists("delAcc",$_GET))
@@ -65,7 +85,7 @@ function procOpt($ldap_Op)
 
 function showHosts($href,$accName,$hosts)
 {
-    
+
 $page_format=<<<PAGEFORMAT
 <div class="form-group row">
     <label class="col-md-3 form-control-label" for="%shost%d">Host:</label>
@@ -93,11 +113,25 @@ PAGEFORMAT;
 function showCard($accInfo)
 {
     $accName=$accInfo["uid"][0];
-    $pageHref="test.php";
-    $deleAccountHref=$pageHref."?delAcc=1&accName=".$accName;
-    $delHostHref=$pageHref."?delHost=1&accName=".$accName;
+    $accPwd=$accInfo["userpassword"][0];
+    $pageHref=getBaseHref();
+    $fileName=getFileName();
+    $deleAccountHref=$pageHref."&delAcc=1&accName=".$accName;
+    $delHostHref=$pageHref."&delHost=1&accName=".$accName;
+    $BMinput="";
+    if(isBMuser())
+    {
+        if(isBMNormal())
+        {
+            $BMinput="<input type=\"hidden\" name=\"BM\" value=\"0\">";
+        }
+        else
+        {
+            $BMinput="<input type=\"hidden\" name=\"BM\" value=\"1\">";
+        }
+        
+    }
 
-    
     $hostsPage=showHosts($delHostHref,$accName,$accInfo["host"]);
 //accountName, deleAccountHref,formAction,accountName,
 $page=<<<PAGEFORMAT
@@ -113,12 +147,13 @@ $page=<<<PAGEFORMAT
         </div>
     </div>
     <div class=" card-body">
-        <form action="{$pageHref}" method="get">
+        <form action="{$fileName}" method="get">
             <input type="hidden" name="accName" value="{$accName}">
+            {$BMinput}
             <div class="form-group row">
                 <label class="col-md-3 form-control-label" for="{$accName}password">Password:</label>
                 <div class="col-md-6">
-                    <input type="password" class="form-control" id="{$accName}password" name="accPwd" placeholder="******" autocomplete="off">
+                    <input type="text" class="form-control" id="{$accName}password" name="accPwd" placeholder="password" autocomplete="off" value="{$accPwd}">
                 </div>
                 <div class="col-md-3">
                     <button type="submit" class="btn btn-primary rounded" name="modPwd" onClick='HashPwd("{$accName}password")' >Modify</button>
@@ -132,7 +167,7 @@ $page=<<<PAGEFORMAT
                     <input type="text" class="form-control" id="{$accName}host" name="host" placeholder="xxx.xxx.xxx.xxx">
                 </div>
                 <div class="col-md-3">
-                    <button type="submit" class="btn btn-primary rounded" name="addHost" onClick='return isValidIp("{$accName}host")'>Add</button>
+                    <button type="submit" class="btn btn-primary rounded" name="addHost" onClick='return addHostProc("{$accName}password","{$accName}host")'>Add</button>
                 </div>
             </div>
         </form>
@@ -156,6 +191,157 @@ function showCards($allAccount)
     return $page;
 }
 
+function getFileName()
+{
+    return basename(__FILE__);
+}
+
+function getBaseHref()
+{
+    $file=getFileName();
+    if (isBMuser()&&!isBMNormal())
+    {
+        return $file."?BM=1";
+    }
+    return $file;
+}
+
+function isBMuser()
+{
+    $email=getAuthUserEmail();
+    if (!strcmp($email,"test@test.com"))
+    {
+        return true;
+    }
+    return false;
+}
+
+function isBMNormal()
+{
+    if(array_key_exists("BM",$_GET) && $_GET["BM"]=="1")
+    {
+        return false;
+    }
+    return true;
+}
+
+function showBM()
+{
+    if(!isBMuser())
+    {
+        return "";
+    }
+
+    $normal_checked="";
+    $BM_checked="";
+    if(isBMNormal())
+    {
+        $normal_checked="checked=\"checked\"";
+    }
+    else
+    {
+        $BM_checked="checked=\"checked\"";
+    }
+$page=<<<PAGEFORMAT
+<div class="header-block">
+    <label>
+        <input class="radio" type="radio" name="BM_radio" value="normal" {$normal_checked} >
+        <span>Normal</span>
+    </label>
+</div>
+<div class="header-block">
+    <label>
+        <input class="radio" type="radio" name="BM_radio" value="BM" {$BM_checked} >
+        <span>BM</span>
+    </label>
+</div>
+
+PAGEFORMAT;
+    return $page;
+}
+
+function showBMJs()
+{
+    if(!isBMuser())
+    {
+        return "";
+    }
+    $basehref=getFileName();
+    
+$page=<<<PAGEFORMAT
+$('input[type=radio][name=BM_radio]').change(function()
+    {
+        if (this.value == 'BM') 
+        {
+            window.location.href="{$basehref}?BM=1";
+        }
+        else
+        {
+            window.location.href="{$basehref}";
+        }
+    }
+);
+PAGEFORMAT;
+    return $page;
+}
+
+function showAddAccModal()
+{
+
+    $fileName=getFileName();
+    $BMinput="";
+    if(isBMuser())
+    {
+        if(isBMNormal())
+        {
+            $BMinput="<input type=\"hidden\" name=\"BM\" value=\"0\">";
+        }
+        else
+        {
+            $BMinput="<input type=\"hidden\" name=\"BM\" value=\"1\">";
+        }
+        
+    }
+
+$page=<<<PAGEFORMAT
+<div class="modal fade" id="AddAccountModal" aria-hidden="true" role="dialog">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title"> New Account</h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form role="form" action="{$fileName}" method="get" >
+                    {$BMinput}
+                    <div class="form-group">
+                        <label for="name">Account Name</label>
+                        <input type="text" class="form-control" id="name" name="accName" placeholder="Name" required="required">
+                    </div>
+                    <div class="form-group">
+                        <label for="accPwd">Password</label>
+                        <input type="text" class="form-control" id="accPwd" name="accPwd" placeholder="Password" required="required" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="host">Host</label>
+                        <input type="text" class="form-control" id="host" name="host" placeholder="xx.xx.xx.xx" required="required">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary" name="addAcc" onClick='return checkAddInfo("accPwd","host")'>Submit</button>
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    </div>
+                </form>
+            </div>
+            
+        </div><!-- /.modal-content -->
+    </div><!-- /.modal-dialog -->
+</div><!-- /.modal -->
+PAGEFORMAT;
+    return $page;
+}
+
 ?>
 
 
@@ -166,6 +352,7 @@ function showCards($allAccount)
         <meta http-equiv="x-ua-compatible" content="ie=edge">
         <title> ModularAdmin - Free Dashboard Theme | HTML Version </title>
         <meta name="description" content="">
+        <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests" />
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="apple-touch-icon" href="apple-touch-icon.png">
         <!-- Place favicon.ico in the root directory -->
@@ -177,8 +364,20 @@ function showCards($allAccount)
         <div class="main-wrapper">
             <div class="app pl-lg-0 " id="app">
                 <header class="header text-center " style="left:0">
-                    <div class="m-auto">
-                        <h1 class="title l text-center"> Build Account Info </h1>
+                    <div class="col-md-4">
+                    </div>
+                    <div class="col-md-4">
+                        <div class="m-auto">
+                            <h1 class="title l text-center"> Build Account Info </h1>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="header-block header-block-buttons ">
+                            <a href="../ckp_handling.php?ckp=home" class="btn btn-sm header-btn">
+                                <i class="fa fa-home"></i>
+                                <span>Home</span>
+                            </a>
+                        </div>
                     </div>
                 </header>
                 <article class="content ">
@@ -188,8 +387,9 @@ function showCards($allAccount)
                                 <div class="card " >
                                     <div class="card-header bordered">
                                         <div class="header-block">
-                                            <h3 class="title"> Total Accounts: <?php echo $ldap_Op->getAccountCnt()?> </h3>
+                                            <h3 class="title"> Total Accounts: <?php echo $ldap_Op->getAccountCnt();?> </h3>
                                         </div>
+                                        <?php echo showBM();?>
                                         <div class="header-block pull-right">
                                             <a href="" class="btn btn-primary btn-sm rounded pull-right" data-toggle="modal" data-target="#AddAccountModal"> Add new </a>
                                         </div>
@@ -204,39 +404,7 @@ function showCards($allAccount)
                     </section>
                 </article>
                 
-                <div class="modal fade" id="AddAccountModal" aria-hidden="true" role="dialog">
-                    <div class="modal-dialog modal-dialog-centered" role="document">
-                        <div class="modal-content">
-                            <div class="modal-header">
-                                <h4 class="modal-title"> New Account</h4>
-                                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                    <span aria-hidden="true">&times;</span>
-                                </button>
-                            </div>
-                            <div class="modal-body">
-                                <form role="form" action="test.php" method="get" >
-                                    <div class="form-group">
-                                        <label for="name">Account Name</label>
-                                        <input type="text" class="form-control" id="name" name="accName" placeholder="Name" required="required">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="accPwd">Password</label>
-                                        <input type="password" class="form-control" id="accPwd" name="accPwd" placeholder="Password" required="required" autocomplete="off">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="host">Host</label>
-                                        <input type="text" class="form-control" id="host" name="host" placeholder="xx.xx.xx.xx" required="required">
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="submit" class="btn btn-primary" name="addAcc" onClick='return checkAddInfo("accPwd","host")'>Submit</button>
-                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                                    </div>
-                                </form>
-                            </div>
-                            
-                        </div><!-- /.modal-content -->
-                    </div><!-- /.modal-dialog -->
-                </div><!-- /.modal -->
+                <?php echo showAddAccModal();?>
 
                 <div class="modal fade" id="confirm-modal">
                     <div class="modal-dialog" role="document">
@@ -329,6 +497,16 @@ function showCards($allAccount)
                 HashPwd(pwdId);
                 return true;
             }
+            function addHostProc(pwdId,hostId)
+            {
+                if (!isValidIp(hostId))
+                {
+                    return false;
+                }
+                $("#"+pwdId).val("");
+                return true;
+            }
+            <?php echo showBMJs();?>
         </script>
         <script src="js/vendor.js"></script>
         <script src="js/app.js"></script>
